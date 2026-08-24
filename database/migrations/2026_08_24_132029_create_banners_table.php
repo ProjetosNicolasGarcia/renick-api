@@ -6,22 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('renick_store_tables', function (Blueprint $table) {
+        // banners para exibição na página inicial
+        Schema::create('banners', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->string('image_url', 500);
+            $table->string('link_url', 500)->nullable();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('renick_store_tables');
+        Schema::dropIfExists('banners');
     }
 };
