@@ -46,6 +46,20 @@ app/
     Controllers/
       Controller.php
   Models/
+    Address.php
+    Banner.php
+    Cart.php
+    CartItem.php
+    Category.php
+    Collection.php
+    Coupon.php
+    Favorite.php
+    Order.php
+    OrderItem.php
+    Product.php
+    ProductImage.php
+    ProductVariant.php
+    Review.php
     User.php
   Providers/
     AppServiceProvider.php
@@ -142,37 +156,512 @@ abstract class Controller
 }
 </file>
 
-<file path="app/Models/User.php">
+<file path="app/Models/Address.php">
 <?php
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class Address extends Model
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    protected $fillable = [
+        'user_id',
+        'zip_code',
+        'street',
+        'number',
+        'complement',
+        'neighborhood',
+        'city',
+        'state',
+        'is_default',
+    ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'is_default' => 'boolean',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+</file>
+
+<file path="app/Models/Banner.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Banner extends Model
+{
+    public $timestamps = false;
+
+    protected $fillable = [
+        'image_url',
+        'link_url',
+    ];
+}
+</file>
+
+<file path="app/Models/Cart.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Cart extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'session_id',
+        'coupon_id',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(CartItem::class);
+    }
+}
+</file>
+
+<file path="app/Models/CartItem.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class CartItem extends Model
+{
+    protected $fillable = [
+        'cart_id',
+        'product_variant_id',
+        'quantity',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+        ];
+    }
+
+    public function cart(): BelongsTo
+    {
+        return $this->belongsTo(Cart::class);
+    }
+
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+}
+</file>
+
+<file path="app/Models/Category.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Category extends Model
+{
+    public $timestamps = false;
+
+    protected $fillable = [
+        'parent_id',
+        'name',
+        'slug',
+    ];
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    public function subcategories(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+}
+</file>
+
+<file path="app/Models/Collection.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Collection extends Model
+{
+    public $timestamps = false;
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'image_url',
+    ];
+}
+</file>
+
+<file path="app/Models/Coupon.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Coupon extends Model
+{
+    protected $fillable = [
+        'code',
+        'discount_percentage',
+        'usage_limit',
+        'used_count',
+        'valid_from',
+        'valid_until',
+        'is_active',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'discount_percentage' => 'decimal:2',
+            'usage_limit' => 'integer',
+            'used_count' => 'integer',
+            'valid_from' => 'datetime',
+            'valid_until' => 'datetime',
+            'is_active' => 'boolean',
+        ];
+    }
+}
+</file>
+
+<file path="app/Models/Favorite.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Favorite extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'product_id',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
+</file>
+
+<file path="app/Models/Order.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Order extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'order_number',
+        'status',
+        'customer_cpf',
+        'customer_phone',
+        'customer_name',
+        'shipping_zip_code',
+        'shipping_state',
+        'shipping_street',
+        'shipping_number',
+        'shipping_complement',
+        'shipping_neighborhood',
+        'shipping_fee',
+        'coupon_discount_amount',
+        'subtotal',
+        'total',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'shipping_fee' => 'decimal:2',
+            'coupon_discount_amount' => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'total' => 'decimal:2',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+}
+</file>
+
+<file path="app/Models/OrderItem.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class OrderItem extends Model
+{
+    protected $fillable = [
+        'order_id',
+        'product_variant_id',
+        'sku',
+        'product_name',
+        'variant_color',
+        'variant_size',
+        'quantity',
+        'unit_price',
+        'total_price',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+            'unit_price' => 'decimal:2',
+            'total_price' => 'decimal:2',
+        ];
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+}
+</file>
+
+<file path="app/Models/Product.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Product extends Model
+{
+    protected $fillable = [
+        'category_id',
+        'name',
+        'slug',
+        'description',
+        'rating_average',
+        'total_review',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'rating_average' => 'decimal:2',
+            'total_review' => 'integer',
+        ];
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+}
+</file>
+
+<file path="app/Models/ProductImage.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class ProductImage extends Model
+{
+    protected $fillable = [
+        'product_id',
+        'color_slug',
+        'image_url',
+        'sort_order',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'sort_order' => 'integer',
+        ];
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
+</file>
+
+<file path="app/Models/ProductVariant.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class ProductVariant extends Model
+{
+    protected $table = 'products_variants';
+
+    protected $fillable = [
+        'product_id',
+        'sku',
+        'size',
+        'color_name',
+        'color_hex',
+        'price',
+        'promo_price',
+        'promo_start',
+        'promo_end',
+        'stock_quantity',
+        'weight_kg',
+        'length_cm',
+        'width_cm',
+        'height_cm',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'price' => 'decimal:2',
+            'promo_price' => 'decimal:2',
+            'promo_start' => 'datetime',
+            'promo_end' => 'datetime',
+            'stock_quantity' => 'integer',
+            'weight_kg' => 'decimal:3',
+            'length_cm' => 'integer',
+            'width_cm' => 'integer',
+            'height_cm' => 'integer',
+        ];
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
+</file>
+
+<file path="app/Models/Review.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Review extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'product_id',
+        'order_id',
+        'name',
+        'rating',
+        'comment',
+        'photos',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'rating' => 'integer',
+            'photos' => 'array',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 }
 </file>
@@ -3317,6 +3806,66 @@ export default defineConfig({
         },
     },
 });
+</file>
+
+<file path="app/Models/User.php">
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $fillable = [
+        'email',
+        'password',
+        'google_id',
+    ];
+
+    protected $hidden = [
+        'password',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+        ];
+    }
+
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
+}
 </file>
 
 </files>
