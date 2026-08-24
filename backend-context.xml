@@ -74,7 +74,21 @@ database/
     0001_01_01_000001_create_cache_table.php
     0001_01_01_000002_create_jobs_table.php
     2026_08_20_163543_create_personal_access_tokens_table.php
-    2026_08_20_163559_create_renick_store_tables.php
+    2026_08_24_132021_create_categories_table.php
+    2026_08_24_132023_create_products_table.php
+    2026_08_24_132024_create_products_variants_table.php
+    2026_08_24_132025_create_product_images_table.php
+    2026_08_24_132027_create_collections_table.php
+    2026_08_24_132029_create_banners_table.php
+    2026_08_24_132031_create_addresses_table.php
+    2026_08_24_132032_create_favorites_table.php
+    2026_08_24_132033_create_coupons_table.php
+    2026_08_24_132035_create_orders_table.php
+    2026_08_24_132036_create_order_items_table.php
+    2026_08_24_132038_create_reviews_table.php
+    2026_08_24_132039_create_carts_table.php
+    2026_08_24_132041_create_cart_items_table.php
+    2026_08_24_132325_alter_users_table.php
   seeders/
     DatabaseSeeder.php
   .gitignore
@@ -1887,7 +1901,7 @@ return new class extends Migration
 };
 </file>
 
-<file path="database/migrations/2026_08_20_163559_create_renick_store_tables.php">
+<file path="database/migrations/2026_08_24_132021_create_categories_table.php">
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -1896,23 +1910,477 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('renick_store_tables', function (Blueprint $table) {
+        // tabela de hierarquia de categorias
+        Schema::create('categories', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('parent_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->string('name', 100)->nullable();
+            $table->string('slug', 100)->unique();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('categories');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132023_create_products_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // entidade principal do produto
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('category_id')->constrained()->restrictOnDelete();
+            $table->string('name', 255);
+            $table->string('slug', 150)->unique();
+            $table->text('description');
+            $table->decimal('rating_average', 3, 2)->unsigned()->nullable();
+            $table->unsignedInteger('total_review')->default(0);
+            $table->timestamps();
+            
+            $table->fullText(['name', 'description'], 'idx_product_search');
+            $table->index('created_at', 'idx_product_created_at');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('products');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132024_create_products_variants_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // controle de sku, estoque e preço por variação
+        Schema::create('products_variants', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->string('sku', 100)->unique();
+            $table->string('size', 10);
+            $table->string('color_name', 45);
+            $table->char('color_hex', 7);
+            $table->decimal('price', 10, 2)->unsigned();
+            $table->decimal('promo_price', 10, 2)->unsigned()->nullable();
+            $table->timestamp('promo_start')->nullable();
+            $table->timestamp('promo_end')->nullable();
+            $table->unsignedSmallInteger('stock_quantity');
+            $table->decimal('weight_kg', 5, 3)->unsigned();
+            $table->unsignedTinyInteger('length_cm');
+            $table->unsignedTinyInteger('width_cm');
+            $table->unsignedTinyInteger('height_cm');
+            $table->timestamps();
+            
+            $table->index(['price', 'promo_price'], 'idx_variants_price');
+            $table->index(['size', 'color_name'], 'idx_variants_attributes');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('products_variants');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132025_create_product_images_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // galeria de imagens associada a uma cor específica
+        Schema::create('product_images', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->string('color_slug', 45)->nullable();
+            $table->string('image_url', 500);
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+            
+            $table->index(['product_id', 'color_slug', 'sort_order'], 'product_color_sort_idx');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('product_images');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132027_create_collections_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // coleções para agrupamento de produtos
+        Schema::create('collections', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 45);
+            $table->string('slug', 45)->unique();
+            $table->string('image_url', 500);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('collections');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132029_create_banners_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // banners para exibição na página inicial
+        Schema::create('banners', function (Blueprint $table) {
+            $table->id();
+            $table->string('image_url', 500);
+            $table->string('link_url', 500)->nullable();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('banners');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132031_create_addresses_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // catálogo de endereços do cliente
+        Schema::create('addresses', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->char('zip_code', 8);
+            $table->string('street', 100);
+            $table->string('number', 20);
+            $table->string('complement', 100)->nullable();
+            $table->string('neighborhood', 100);
+            $table->string('city', 100);
+            $table->char('state', 2);
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('renick_store_tables');
+        Schema::dropIfExists('addresses');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132032_create_favorites_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // lista de desejos de usuários
+        Schema::create('favorites', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->timestamps();
+            
+            $table->unique(['user_id', 'product_id'], 'uq_user_product');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('favorites');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132033_create_coupons_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // cupons de desconto aplicáveis ao carrinho e pedido
+        Schema::create('coupons', function (Blueprint $table) {
+            $table->id();
+            $table->string('code', 45)->unique();
+            $table->decimal('discount_percentage', 5, 2);
+            $table->unsignedInteger('usage_limit')->nullable();
+            $table->unsignedInteger('used_count')->default(0);
+            $table->timestamp('valid_from')->nullable();
+            $table->timestamp('valid_until')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('coupons');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132035_create_orders_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // registro estático da transação e dados do cliente no ato da compra
+        Schema::create('orders', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->string('order_number', 20)->unique();
+            $table->string('status', 20);
+            $table->char('customer_cpf', 11);
+            $table->string('customer_phone', 20);
+            $table->string('customer_name', 100);
+            $table->char('shipping_zip_code', 8);
+            $table->char('shipping_state', 2);
+            $table->string('shipping_street', 100);
+            $table->string('shipping_number', 20);
+            $table->string('shipping_complement', 100)->nullable();
+            $table->string('shipping_neighborhood', 100);
+            $table->decimal('shipping_fee', 10, 2)->unsigned();
+            $table->decimal('coupon_discount_amount', 10, 2)->unsigned()->default(0);
+            $table->decimal('subtotal', 10, 2)->unsigned();
+            $table->decimal('total', 10, 2)->unsigned();
+            $table->timestamps();
+            
+            $table->index(['user_id', 'created_at'], 'idx_user_created');
+            $table->index(['user_id', 'status'], 'idx_user_status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('orders');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132036_create_order_items_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // espelho da variante comprada para imutabilidade do pedido
+        Schema::create('order_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('order_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_variant_id')->constrained('products_variants')->restrictOnDelete();
+            $table->string('sku', 100);
+            $table->string('product_name', 255);
+            $table->string('variant_color', 45);
+            $table->string('variant_size', 10);
+            $table->unsignedTinyInteger('quantity');
+            $table->decimal('unit_price', 10, 2)->unsigned();
+            $table->decimal('total_price', 10, 2)->unsigned();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('order_items');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132038_create_reviews_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // registro de avaliações atrelado ao usuário, produto e pedido específico
+        Schema::create('reviews', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->foreignId('order_id')->constrained()->restrictOnDelete();
+            $table->string('name', 100);
+            $table->unsignedTinyInteger('rating');
+            $table->string('comment', 1000);
+            $table->json('photos')->nullable();
+            $table->timestamps();
+            
+            $table->unique(['user_id', 'product_id', 'order_id'], 'uq_user_product_order');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('reviews');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132039_create_carts_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // gerencia o carrinho vinculado a um visitante anonimo ou autenticado
+        Schema::create('carts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->restrictOnDelete();
+            $table->string('session_id', 255)->nullable()->unique();
+            $table->foreignId('coupon_id')->nullable()->constrained()->nullOnDelete();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('carts');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132041_create_cart_items_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // itens transitórios no carrinho do usuário
+        Schema::create('cart_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('cart_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_variant_id')->constrained('products_variants')->restrictOnDelete();
+            $table->unsignedTinyInteger('quantity');
+            $table->timestamps();
+            
+            $table->unique(['cart_id', 'product_variant_id'], 'uq_cart_variant');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('cart_items');
+    }
+};
+</file>
+
+<file path="database/migrations/2026_08_24_132325_alter_users_table.php">
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // remove campos sensíveis e adiciona login social
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['name', 'email_verified_at', 'remember_token']);
+            $table->string('password')->nullable()->change();
+            $table->string('google_id')->nullable()->unique()->after('password');
+        });
+    }
+
+    public function down(): void
+    {
+        // reverte a estrutura para o padrão do framework
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('name');
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('remember_token', 100)->nullable();
+            $table->dropColumn('google_id');
+        });
     }
 };
 </file>
