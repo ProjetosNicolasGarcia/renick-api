@@ -1,13 +1,21 @@
 <?php
 
-// configurações de cors para integração com o front-end
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
+
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:5173', 'http://127.0.0.1:5173'],
+
+    // Permite qualquer origem (ideal para lidar com IPs dinâmicos do WSL)
+    'allowed_origins' => ['*'],
+
     'allowed_origins_patterns' => [],
-    'allowed_headers' => ['Content-Type', 'Authorization', 'X-Requested-With', 'X-XSRF-TOKEN'],
-    'exposed_headers' => [],
+
+    'allowed_headers' => ['*'],
+
+    'exposed_headers' => ['X-Cart-Session-Id', 'Location'],
+
     'max_age' => 0,
-    'supports_credentials' => true,
+
+    // IMPORTANTE: Deve ser false quando allowed_origins for ['*']
+    'supports_credentials' => false, 
 ];
