@@ -87,4 +87,64 @@ class AuthService
             ],
         ];
     }
+
+public function authenticateWithGoogle(array $data): array
+    {
+        $token = $data['id_token'];
+        $client = app(\Google_Client::class);
+        $client->setClientId(env('GOOGLE_CLIENT_ID'));
+
+        // identifica se o token recebido possui o formato jwt de 3 segmentos
+        $isJwt = substr_count($token, '.') === 2;
+
+        if ($isJwt) {
+            $payload = $client->verifyIdToken($token);
+        } else {
+            // consulta os dados do usuario diretamente via api do google com o access token
+            $response = \Illuminate\Support\Facades\Http::withToken($token)
+                ->get('https://www.googleapis.com/oauth2/v3/userinfo');
+
+            if ($response->successful()) {
+                $googleUser = $response->json();
+                $payload = [
+                    'email' => $googleUser['email'] ?? null,
+                    'given_name' => $googleUser['given_name'] ?? null,
+                    'family_name' => $googleUser['family_name'] ?? null,
+                ];
+            } else {
+                $payload = false;
+            }
+        }
+
+        // early return se o token for invalido ou a consulta falhar
+        if (! $payload || empty($payload['email'])) {
+            throw ValidationException::withMessages([
+                'id_token' => ['O token do Google é inválido ou expirou.'],
+            ]);
+        }
+
+        // busca o usuario pelo email ou cria um novo registro
+        $user = User::firstOrCreate(
+            ['email' => $payload['email']],
+            [
+                'first_name' => $payload['given_name'] ?? null,
+                'last_name' => $payload['family_name'] ?? null,
+                'password' => \Illuminate\Support\Str::random(32),
+            ]
+        );
+
+        $authToken = $user->createToken('auth_token')->plainTextToken;
+
+        return [
+            'access_token' => $authToken,
+            'token_type' => 'Bearer',
+            'expires_in' => config('sanctum.expiration') * 60,
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+            ],
+            'is_new' => $user->wasRecentlyCreated,
+        ];
+    }
+
 }

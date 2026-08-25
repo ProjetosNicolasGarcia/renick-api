@@ -14,6 +14,7 @@ Route::get('/user', function (Request $request) {
 #Rotas de autenticação
 Route::post('/users', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/google', [AuthController::class, 'googleAuth']);
 
 // rotas de recuperacao de senha
 Route::post('/auth/forgot-password', [PasswordResetController::class, 'sendResetLink']);

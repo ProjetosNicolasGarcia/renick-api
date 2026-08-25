@@ -26,4 +26,15 @@ class AuthController extends Controller
         // retorna 202 indicando que o fluxo precisa do 2FA
         return response()->json($response, 202);
     }
+
+    public function googleAuth(\App\Http\Requests\GoogleAuthRequest $request): \Illuminate\Http\JsonResponse
+    {
+        $response = $this->authService->authenticateWithGoogle($request->validated());
+        
+        $status = $response['is_new'] ? 201 : 200;
+        unset($response['is_new']);
+
+        return response()->json($response, $status);
+    }
+    
 }
