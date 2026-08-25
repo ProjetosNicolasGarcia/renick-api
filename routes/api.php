@@ -24,3 +24,13 @@ Route::post('/auth/reset-password', [PasswordResetController::class, 'reset']);
 // rotas de 2fa 
 Route::post('/auth/2fa/send', [TwoFactorController::class, 'send']);
 Route::post('/auth/2fa/verify', [TwoFactorController::class, 'verify']);
+
+//rotas do perfil do usuário
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+    
+    Route::get('/me', [\App\Http\Controllers\ProfileController::class, 'show']);
+    Route::patch('/me', [\App\Http\Controllers\ProfileController::class, 'update']);
+    Route::delete('/me', [\App\Http\Controllers\ProfileController::class, 'destroy']);
+});

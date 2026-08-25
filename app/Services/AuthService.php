@@ -147,4 +147,12 @@ public function authenticateWithGoogle(array $data): array
         ];
     }
 
+    // encerra a sessao excluindo o token
+    public function logout(\Illuminate\Http\Request $request): \Illuminate\Http\Response
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->noContent();
+    }
+
 }
