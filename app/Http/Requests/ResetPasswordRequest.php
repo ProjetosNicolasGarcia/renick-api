@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Hash;
 
-class RegisterUserRequest extends FormRequest
+class ResetPasswordRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,10 +16,23 @@ class RegisterUserRequest extends FormRequest
 
     public function rules(): array
     {
-        // validacao rigorosa conforme especificacao openapi
+        // define as regras rigorosas para a nova senha
         return [
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::min(8)->mixedCase()->numbers()->symbols()],
+            'token' => ['required', 'string'],
+            'email' => ['required', 'string', 'email'],
+            'password' => [
+                'required', 
+                'confirmed', 
+                Password::min(8)->mixedCase()->numbers()->symbols(),
+                // Regra customizada para impedir a reutilizacao da senha
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    $user = User::where('email', $this->email)->first();
+                    
+                    if ($user && Hash::check($value, $user->password)) {
+                        $fail('A nova senha deve ser diferente da anterior.');
+                    }
+                },
+            ],
         ];
     }
 
@@ -32,8 +47,8 @@ class RegisterUserRequest extends FormRequest
             'password.symbols' => 'A senha deve conter pelo menos um símbolo especial.',
             'email.required' => 'O campo email é obrigatório.',
             'email.email' => 'Forneça um email válido.',
-            'email.unique' => 'Este email já está cadastrado em nossa base.',
+            'token.required' => 'O token de redefinição é inválido ou expirou.',
         ];
     }
-    
+
 }
