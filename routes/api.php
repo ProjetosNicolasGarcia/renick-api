@@ -37,3 +37,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //categorias
 Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    // rotas de endereco do usuario logado
+    Route::get('/me/addresses', [\App\Http\Controllers\AddressController::class, 'index']);
+    Route::post('/me/addresses', [\App\Http\Controllers\AddressController::class, 'store']);
+    Route::patch('/me/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'update']);
+    Route::delete('/me/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'destroy']);
+});
