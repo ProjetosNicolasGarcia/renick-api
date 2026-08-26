@@ -5,17 +5,16 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // Permite qualquer origem (ideal para lidar com IPs dinâmicos do WSL)
+    // Permite todas as origens em desenvolvimento local
     'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => ['X-Cart-Session-Id', 'Location'],
+    'exposed_headers' => [],
 
     'max_age' => 0,
 
-    // IMPORTANTE: Deve ser false quando allowed_origins for ['*']
-    'supports_credentials' => false, 
+    'supports_credentials' => false,
 ];

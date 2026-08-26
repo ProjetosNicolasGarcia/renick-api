@@ -34,3 +34,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/me', [\App\Http\Controllers\ProfileController::class, 'update']);
     Route::delete('/me', [\App\Http\Controllers\ProfileController::class, 'destroy']);
 });
+
+//categorias
+Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
