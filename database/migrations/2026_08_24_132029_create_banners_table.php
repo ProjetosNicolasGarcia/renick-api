@@ -8,11 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // banners para exibição na página inicial
         Schema::create('banners', function (Blueprint $table) {
             $table->id();
-            $table->string('image_url', 500);
-            $table->string('link_url', 500)->nullable();
+            $table->string('image_url');
+            $table->string('image_url_mobile')->nullable();
+            $table->string('link_url')->nullable();
+            $table->timestamps();
         });
     }
 

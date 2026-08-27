@@ -5,6 +5,8 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BannerController;
+use App\Http\Controllers\ProductController;
 
 
 Route::get('/user', function (Request $request) {
@@ -38,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
 //categorias
 Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
 
+//endereço
 Route::middleware('auth:sanctum')->group(function () {
     // rotas de endereco do usuario logado
     Route::get('/me/addresses', [\App\Http\Controllers\AddressController::class, 'index']);
@@ -45,3 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/me/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'update']);
     Route::delete('/me/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'destroy']);
 });
+
+//catalogo
+Route::get('/banners', [BannerController::class, 'index']);
+Route::get('/products', [ProductController::class, 'index']);
