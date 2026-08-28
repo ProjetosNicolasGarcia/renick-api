@@ -54,3 +54,4 @@ Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
+Route::get('/products', [ProductController::class, 'index']);

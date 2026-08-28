@@ -10,13 +10,23 @@ class ProductController extends Controller
 {
     public function __construct(private ProductService $productService) {}
 
-    // lista os produtos com base nos filtros da query string
-    public function index(Request $request): JsonResponse
+   public function index(Request $request): JsonResponse
     {
-        $products = $this->productService->getListedProducts($request->all());
-        return response()->json($products);
+        try {
+            // Captura todos os filtros da URL diretamente
+            $filters = $request->all();
+            $products = $this->productService->getListedProducts($filters);
+            
+            return response()->json($products);
+        } catch (\Throwable $e) {
+            // Se algo falhar, o erro exato será devolvido para o front-end
+            return response()->json([
+                'error' => 'Erro interno no servidor',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine()
+            ], 500);
+        }
     }
-
     public function show(int $id): JsonResponse
     {
         try {

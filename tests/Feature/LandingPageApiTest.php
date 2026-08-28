@@ -87,6 +87,6 @@ class LandingPageApiTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJsonCount(4, 'data')
-                 ->assertJsonPath('data.0.variants.0.promo_price', "50.00");
+                 ->assertJsonPath('data.0.promotional_price', 50);
     }
 }

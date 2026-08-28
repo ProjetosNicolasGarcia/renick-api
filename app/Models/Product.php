@@ -10,11 +10,14 @@ class Product extends Model
 {
     protected $fillable = [
         'category_id',
+        'collection_id',
+        'gender',
         'name',
         'slug',
         'description',
         'rating_average',
         'total_review',
+        'is_active',
     ];
 
     protected function casts(): array
@@ -43,5 +46,10 @@ class Product extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function collection()
+    {
+        return $this->belongsTo(Collection::class);
     }
 }
