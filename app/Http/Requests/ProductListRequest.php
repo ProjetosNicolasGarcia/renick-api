@@ -15,10 +15,13 @@ class ProductListRequest extends FormRequest
     {
         return [
             'q' => 'nullable|string|max:100',
-            'gender' => 'nullable|in:masculino,feminino,bebes,unissex',
-            'type' => 'nullable|string|max:100',
+            'gender' => 'nullable|string',
+            'type' => 'nullable|string',
             'collection' => 'nullable|string',
-            'size' => 'nullable|string|max:50',
+            'size' => 'nullable|string',
+            'color' => 'nullable|string',
+            'min_price' => 'nullable|numeric|min:0',
+            'max_price' => 'nullable|numeric|min:0',
             'is_sale' => 'nullable|in:true,false,1,0',
             'sort' => 'nullable|string',
             'page' => 'nullable|integer|min:1',

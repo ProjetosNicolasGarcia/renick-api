@@ -4,12 +4,13 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Category;
 
 class ProductService
 {
-    public function getListedProducts(array $filters): array
+   public function getListedProducts(array $filters): array
     {
-        $query = Product::with(['images', 'variants', 'category'])->where('is_active', true);
+        $query = \App\Models\Product::with(['images', 'variants', 'category'])->where('is_active', true);
 
         if (!empty($filters['q'])) {
             $search = $filters['q'];
@@ -19,27 +20,49 @@ class ProductService
             });
         }
 
-        // Filtro de Gênero: Traz o sexo específico + produtos unissex automaticamente
         if (!empty($filters['gender'])) {
-            $gender = strtolower(trim($filters['gender']));
-            if (in_array($gender, ['masculino', 'feminino'])) {
-                $query->whereIn('gender', [$gender, 'unissex']);
-            } else {
-                $query->where('gender', $gender);
-            }
-        }
-
-        if (!empty($filters['size'])) {
-            $sizes = array_map('trim', explode(',', $filters['size']));
-            $query->whereHas('variants', function ($v) use ($sizes) {
-                $v->whereIn('size', $sizes);
+            $genders = array_map('trim', explode(',', strtolower($filters['gender'])));
+            $query->where(function($q) use ($genders) {
+                $q->whereIn('gender', $genders);
+                if (array_intersect(['masculino', 'feminino'], $genders)) {
+                    $q->orWhere('gender', 'unissex');
+                }
             });
         }
 
-        // Filtro Exato de Categoria (Pronto para o Admin)
         if (!empty($filters['type'])) {
-            $type = strtolower(trim($filters['type']));
-            $query->whereHas('category', fn($c) => $c->where('slug', $type));
+            $types = array_map('trim', explode(',', strtolower($filters['type'])));
+            $query->whereHas('category', fn($c) => $c->whereIn('slug', $types));
+        }
+
+        if (!empty($filters['size'])) {
+            $sizes = array_map('trim', explode(',', strtoupper($filters['size'])));
+            $query->whereHas('variants', fn($v) => $v->whereIn('size', $sizes));
+        }
+
+        if (!empty($filters['color'])) {
+            $colors = array_map('trim', explode(',', strtolower($filters['color'])));
+            $query->whereHas('variants', function ($v) use ($colors) {
+                $v->where(function($q) use ($colors) {
+                    foreach($colors as $color) {
+                        $q->orWhere('color_name', 'like', "%{$color}%");
+                    }
+                });
+            });
+        }
+
+        // Filtra pelo valor mínimo efetivo da variante
+        if (isset($filters['min_price']) && is_numeric($filters['min_price'])) {
+            $min = (float) $filters['min_price'];
+            $variantTable = (new \App\Models\ProductVariant())->getTable();
+            $query->whereRaw("(SELECT MIN(COALESCE(NULLIF(promo_price, 0), price)) FROM {$variantTable} WHERE product_id = products.id) >= ?", [$min]);
+        }
+
+        // Filtra pelo valor máximo efetivo da variante
+        if (isset($filters['max_price']) && is_numeric($filters['max_price'])) {
+            $max = (float) $filters['max_price'];
+            $variantTable = (new \App\Models\ProductVariant())->getTable();
+            $query->whereRaw("(SELECT MIN(COALESCE(NULLIF(promo_price, 0), price)) FROM {$variantTable} WHERE product_id = products.id) <= ?", [$max]);
         }
 
         if (!empty($filters['collection'])) {
@@ -47,9 +70,8 @@ class ProductService
             $query->whereHas('collection', fn($c) => $c->where('slug', $col));
         }
 
-        // Promoções dinâmicas: verifica se alguma variante possui promo_price
         if (isset($filters['is_sale']) && in_array($filters['is_sale'], ['true', true, 1, '1'], true)) {
-            $query->whereHas('variants', fn($v) => $v->whereNotNull('promo_price'));
+            $query->whereHas('variants', fn($v) => $v->whereNotNull('promo_price')->where('promo_price', '>', 0));
         }
 
         $sort = $filters['sort'] ?? 'newest';
@@ -58,10 +80,10 @@ class ProductService
                 $query->orderBy('id', 'desc');
                 break;
             case 'price_asc':
-                $query->orderBy(ProductVariant::select('price')->whereColumn('product_id', 'products.id')->orderBy('price', 'asc')->limit(1));
+                $query->orderBy(\App\Models\ProductVariant::select('price')->whereColumn('product_id', 'products.id')->orderBy('price', 'asc')->limit(1));
                 break;
             case 'price_desc':
-                $query->orderBy(ProductVariant::select('price')->whereColumn('product_id', 'products.id')->orderBy('price', 'desc')->limit(1));
+                $query->orderBy(\App\Models\ProductVariant::select('price')->whereColumn('product_id', 'products.id')->orderBy('price', 'desc')->limit(1));
                 break;
             case 'newest':
             default:
@@ -73,15 +95,20 @@ class ProductService
         $paginator = $query->paginate($perPage);
 
         $data = $paginator->map(function ($prod) {
-            $firstVariant = $prod->variants->first();
-            $firstImage = $prod->images->where('sort_order', 0)->first();
+            
+            // CORREÇÃO: Puxa sempre a variante mais barata (com ou sem oferta) para a capa
+            $cheapestVariant = $prod->variants->sortBy(function ($v) {
+                return ($v->promo_price > 0) ? (float) $v->promo_price : (float) $v->price;
+            })->first();
+
+            $firstImage = $prod->images->where('sort_order', 0)->first() ?? $prod->images->first();
 
             return [
                 'id' => $prod->id,
                 'name' => $prod->name,
                 'slug' => $prod->slug,
-                'price' => $firstVariant ? (float) $firstVariant->price : 0.00,
-                'promotional_price' => ($firstVariant && $firstVariant->promo_price) ? (float) $firstVariant->promo_price : null,
+                'price' => $cheapestVariant ? (float) $cheapestVariant->price : 0.00,
+                'promotional_price' => ($cheapestVariant && $cheapestVariant->promo_price > 0) ? (float) $cheapestVariant->promo_price : null,
                 'image_url' => $firstImage ? $firstImage->image_url : null,
             ];
         });
@@ -96,6 +123,28 @@ class ProductService
             ]
         ];
     }
+    
+
+    public function getFilterAttributes(): array
+    {
+        $types = \App\Models\Category::pluck('name')->unique()->values()->toArray();
+        $sizes = \App\Models\ProductVariant::pluck('size')->unique()->filter()->values()->toArray();
+        sort($sizes);
+        $colors = \App\Models\ProductVariant::select('color_name as name', 'color_hex as hex')->distinct()->get()->toArray();
+        $minPrice = \App\Models\ProductVariant::min('promo_price') ?? \App\Models\ProductVariant::min('price') ?? 0;
+        $maxPrice = \App\Models\ProductVariant::max('price') ?? 500;
+
+        return [
+            'genders' => ['Masculino', 'Feminino', 'Bebês', 'Unissex'],
+            'types' => $types,
+            'sizes' => $sizes,
+            'colors' => $colors,
+            'price_range' => [
+                'min' => (float) $minPrice,
+                'max' => (float) $maxPrice,
+            ]
+        ];
+    }
 
     public function getProductDetails(int $id): Product
     {
@@ -103,10 +152,13 @@ class ProductService
             $q->orderBy('sort_order', 'asc');
         }, 'variants'])->findOrFail($id);
 
-        $firstVariant = $product->variants->first();
+        $saleVariant = $product->variants->firstWhere(function ($v) {
+            return !is_null($v->promo_price) && $v->promo_price > 0;
+        });
+        $firstVariant = $saleVariant ?? $product->variants->first();
         
         $product->price = $firstVariant ? (float) $firstVariant->price : 0.00;
-        $product->promotional_price = ($firstVariant && $firstVariant->promo_price) ? (float) $firstVariant->promo_price : null;
+        $product->promotional_price = ($firstVariant && $firstVariant->promo_price > 0) ? (float) $firstVariant->promo_price : null;
         $product->installment_info = '5% OFF no Pix ou no cartão em até 3x sem juros';
         
         $product->images_list = $product->images->map(function ($img) {
@@ -149,10 +201,14 @@ class ProductService
         }
 
         return $related->map(function ($prod) {
-            $firstVariant = $prod->variants->first();
-            $firstImage = $prod->images->where('sort_order', 0)->first();
+            $saleVariant = $prod->variants->firstWhere(function ($v) {
+                return !is_null($v->promo_price) && $v->promo_price > 0;
+            });
+            $firstVariant = $saleVariant ?? $prod->variants->first();
+            $firstImage = $prod->images->where('sort_order', 0)->first() ?? $prod->images->first();
+            
             $prod->price = $firstVariant ? (float) $firstVariant->price : 0.00;
-            $prod->promotional_price = ($firstVariant && $firstVariant->promo_price) ? (float) $firstVariant->promo_price : null;
+            $prod->promotional_price = ($firstVariant && $firstVariant->promo_price > 0) ? (float) $firstVariant->promo_price : null;
             $prod->image_url = $firstImage ? $firstImage->image_url : null;
             return $prod;
         })->toArray();

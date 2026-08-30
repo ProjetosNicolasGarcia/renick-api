@@ -58,4 +58,13 @@ class ProductController extends Controller
             return response()->json(['error' => 'Falha ao buscar relacionados', 'message' => $e->getMessage()], 500);
         }
     }
+
+    public function attributes(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            return response()->json($this->productService->getFilterAttributes());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Erro interno', 'message' => $e->getMessage()], 500);
+        }
+    }
 }
