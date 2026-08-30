@@ -47,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me/addresses', [\App\Http\Controllers\AddressController::class, 'store']);
     Route::patch('/me/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'update']);
     Route::delete('/me/addresses/{address}', [\App\Http\Controllers\AddressController::class, 'destroy']);
+    Route::get('/me/favorites', [\App\Http\Controllers\FavoriteController::class, 'index']);
+    Route::post('/me/favorites', [\App\Http\Controllers\FavoriteController::class, 'store']);
+    Route::delete('/me/favorites/{id}', [\App\Http\Controllers\FavoriteController::class, 'destroy']);
 });
 
 //catalogo

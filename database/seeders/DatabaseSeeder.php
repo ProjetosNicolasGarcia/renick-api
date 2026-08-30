@@ -33,9 +33,9 @@ class DatabaseSeeder extends Seeder
 
         // Mapeamento de cores para distribuir nos produtos base
         $colorMap = [
-            'masculino' => ['name' => 'Azul', 'hex' => '#1E45FB'],
-            'feminino'  => ['name' => 'Rosa', 'hex' => '#FF69B4'],
-            'bebes'     => ['name' => 'Verde', 'hex' => '#CDF22B'],
+            'masculino' => ['name' => 'azul', 'hex' => '#1E45FB'],
+            'feminino'  => ['name' => 'laranja', 'hex' => '#FF69B4'],
+            'bebes'     => ['name' => 'amarelo', 'hex' => '#CDF22B'],
         ];
 
         // 2. Produtos Focados: 1 para cada Categoria por Gênero (Pulando Conjuntos)
