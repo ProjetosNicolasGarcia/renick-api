@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // garante execucao do cors antes de qualquer roteamento ou outro middleware
         $middleware->prepend(HandleCors::class);
+
+        // Impede estritamente que requisições não autenticadas de API tentem 
+        // redirecionar para rotas web, devolvendo o controle para gerar o 401 JSON limpo
+        $middleware->redirectGuestsTo(fn (Request $request) => 
+            $request->is('api/*') ? null : route('login')
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

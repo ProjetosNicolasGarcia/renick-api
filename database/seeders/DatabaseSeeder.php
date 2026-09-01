@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Categorias Limpas (Apenas o Tipo da Roupa)
         $subNames = ['Camisetas', 'Camisas', 'Casacos', 'Calças', 'Bermudas', 'Conjuntos'];
         $categories = [];
         
@@ -31,23 +30,20 @@ class DatabaseSeeder extends Seeder
             ['image_url' => '/banners/banner-3.jpg', 'image_url_mobile' => '/banners/banner-3-mobile.jpg', 'link_url' => '/products?gender=feminino'],
         ]);
 
-        // Mapeamento de cores para distribuir nos produtos base
         $colorMap = [
-            'masculino' => ['name' => 'azul', 'hex' => '#1E45FB'],
-            'feminino'  => ['name' => 'laranja', 'hex' => '#FF69B4'],
-            'bebes'     => ['name' => 'amarelo', 'hex' => '#CDF22B'],
+            'masculino' => ['name' => 'Azul', 'hex' => '#1E45FB', 'image' => '/products/sua-foto-de-produto-azul.png'],
+            'feminino'  => ['name' => 'Rosa', 'hex' => '#FF69B4', 'image' => '/products/sua-foto-de-produto-rosa.png'],
+            'bebes'     => ['name' => 'Laranja', 'hex' => '#FF7537', 'image' => '/products/sua-foto-de-produto-laranja.png'],
         ];
 
-        // 2. Produtos Focados: 1 para cada Categoria por Gênero (Pulando Conjuntos)
         $gendersToSeed = ['masculino', 'feminino', 'bebes'];
         
         foreach ($gendersToSeed as $gender) {
             foreach ($categories as $slug => $cat) {
-                if ($slug === 'conjuntos') continue; // Deixa conjuntos vazio para teste
+                if ($slug === 'conjuntos') continue;
 
                 $prodName = $cat->name . ' ' . ucfirst($gender);
                 
-                // Transforma a Camiseta do Masculino em Unissex para teste cruzado
                 if ($gender === 'masculino' && $slug === 'camisetas') {
                     $prodName = 'Camiseta Unissex Básica';
                     $productGender = 'unissex';
@@ -69,12 +65,11 @@ class DatabaseSeeder extends Seeder
 
                 ProductImage::create([
                     'product_id' => $prod->id,
-                    'image_url' => '/products/sua-foto-de-produto-' . Str::slug($colorData['name']) . '.png',
+                    'image_url' => $colorData['image'],
                     'color_slug' => Str::slug($colorData['name']),
                     'sort_order' => 0,
                 ]);
 
-                // Atribuição estruturada de tamanhos com base na subcategoria
                 $sizesToAssign = match($slug) {
                     'camisetas' => ['1', '10'],
                     'camisas'   => ['2', '12'],
@@ -84,7 +79,6 @@ class DatabaseSeeder extends Seeder
                     default     => ['M'],
                 };
 
-                // Cria uma variante para cada tamanho do array acima, usando a cor do gênero
                 foreach ($sizesToAssign as $size) {
                     ProductVariant::create([
                         'product_id' => $prod->id,
@@ -93,7 +87,7 @@ class DatabaseSeeder extends Seeder
                         'color_name' => $colorData['name'],
                         'color_hex' => $colorData['hex'],
                         'price' => rand(80, 150) + 0.99,
-                        'promo_price' => rand(0, 1) ? rand(50, 79) + 0.99 : null, // Ofertas aleatórias
+                        'promo_price' => rand(0, 1) ? rand(50, 79) + 0.99 : null,
                         'stock_quantity' => 15,
                         'weight_kg' => 0.3,
                         'length_cm' => 20,
@@ -104,31 +98,28 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // =========================================================================
-        // 3. PRODUTO ESPECÍFICO DE MÚLTIPLAS CORES (Para testar o filtro de cor)
-        // =========================================================================
         $multiColorProduct = Product::create([
             'category_id' => $categories['casacos']->id,
             'collection_id' => null,
             'gender' => 'unissex',
             'name' => 'Casaco Teste Múltiplas Cores',
             'slug' => 'casaco-teste-multiplas-cores',
-            'description' => 'Produto criado especificamente para testar o filtro com múltiplas cores associadas ao mesmo item.',
+            'description' => 'Produto criado especificamente para testar a transição de imagens por variante de cor e exibição de thumbnail no carrinho.',
             'is_active' => true,
         ]);
 
         $multiColors = [
-            ['name' => 'Preto', 'hex' => '#0A0A0A'],
-            ['name' => 'Branco', 'hex' => '#FAFAFA'],
-            ['name' => 'Vermelho', 'hex' => '#D22A31'],
+            ['name' => 'Azul', 'hex' => '#1E45FB', 'image' => '/products/sua-foto-de-produto-azul.png'],
+            ['name' => 'Laranja', 'hex' => '#FF7537', 'image' => '/products/sua-foto-de-produto-laranja.png'],
+            ['name' => 'Rosa', 'hex' => '#FF69B4', 'image' => '/products/sua-foto-de-produto-rosa.png'],
         ];
 
         foreach ($multiColors as $idx => $color) {
             ProductImage::create([
                 'product_id' => $multiColorProduct->id,
-                'image_url' => '/products/sua-foto-de-produto-' . Str::slug($color['name']) . '.png',
+                'image_url' => $color['image'],
                 'color_slug' => Str::slug($color['name']),
-                'sort_order' => 0,
+                'sort_order' => $idx,
             ]);
 
             ProductVariant::create([
@@ -137,7 +128,6 @@ class DatabaseSeeder extends Seeder
                 'size' => 'M',
                 'color_name' => $color['name'],
                 'color_hex' => $color['hex'],
-                // Valores fixos para garantir estabilidade visual no teste
                 'price' => 199.99, 
                 'promo_price' => null,
                 'stock_quantity' => 10,

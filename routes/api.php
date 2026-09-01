@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CartController;
 
 
 Route::get('/user', function (Request $request) {
@@ -55,7 +56,10 @@ Route::middleware('auth:sanctum')->group(function () {
 //catalogo
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/products', [ProductController::class, 'index']);
-Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::get('/products/{id}', [ProductController::class, 'show'])->where('id', '[0-9]+');
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/attributes', [\App\Http\Controllers\ProductController::class, 'attributes']);
+Route::get('/cart', [CartController::class, 'show']);
+Route::post('/cart/items', [CartController::class, 'store']);
+Route::delete('/cart/items/{itemId}', [CartController::class, 'destroy'])->where('itemId', '[0-9]+');

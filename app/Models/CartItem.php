@@ -3,29 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CartItem extends Model
 {
-    protected $fillable = [
-        'cart_id',
-        'product_variant_id',
-        'quantity',
-    ];
+    // Removido o 'unit_price' e mantido apenas os campos que a tabela realmente possui
+    protected $fillable = ['cart_id', 'product_variant_id', 'quantity'];
 
-    protected function casts(): array
-    {
-        return [
-            'quantity' => 'integer',
-        ];
-    }
-
-    public function cart(): BelongsTo
+    public function cart()
     {
         return $this->belongsTo(Cart::class);
     }
 
-    public function variant(): BelongsTo
+    public function variant()
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
